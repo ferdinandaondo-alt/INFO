@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-ink text-paper font-body antialiased;
+    background-image: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(62, 207, 74, 0.10), transparent);
+  }
+  ::selection {
+    background: rgba(62, 207, 74, 0.3);
+    color: #E8ECE9;
+  }
+  :focus-visible {
+    outline: 2px solid #3ECF4A;
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply font-mono text-[11px] tracking-[0.25em] uppercase text-matrix/80;
+  }
+  .glow-text {
+    text-shadow: 0 0 18px rgba(62, 207, 74, 0.55), 0 0 44px rgba(62, 207, 74, 0.25);
+  }
+  .doc-frame {
+    @apply relative border border-border bg-surface/60 backdrop-blur-sm;
+  }
+  .doc-frame::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, transparent 0, transparent 7px, rgba(62,207,74,0.3) 7px, rgba(62,207,74,0.3) 8px, transparent 8px),
+      linear-gradient(to bottom, transparent 0, transparent 7px, rgba(62,207,74,0.3) 7px, rgba(62,207,74,0.3) 8px, transparent 8px);
+    background-repeat: no-repeat;
+    background-size: 18px 18px;
+    background-position: top left, top left;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm bg-matrix px-7 py-3.5 font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-ink transition-all hover:bg-matrix-bright active:scale-[0.98];
+    box-shadow: 0 0 24px rgba(62, 207, 74, 0.35);
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-sm border border-border bg-transparent px-7 py-3.5 font-mono text-[13px] font-bold uppercase tracking-[0.15em] text-paper transition-all hover:border-matrix/50 hover:text-matrix active:scale-[0.98];
+  }
+}
+
+/* Mobile menu hamburger → X animation, driven by the #menu-toggle checkbox in Header.tsx */
+#menu-toggle:checked ~ div .menu-line-top { transform: translateY(6.5px) rotate(45deg); }
+#menu-toggle:checked ~ div .menu-line-mid { opacity: 0; }
+#menu-toggle:checked ~ div .menu-line-bottom { transform: translateY(-6.5px) rotate(-45deg); }

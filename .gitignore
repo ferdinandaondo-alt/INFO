@@ -1,0 +1,8 @@
+node_modules
+.next
+.env
+.env.local
+storage/products/*
+!storage/products/.gitkeep
+*.log
+.DS_Store

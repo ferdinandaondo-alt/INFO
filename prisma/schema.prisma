@@ -1,0 +1,195 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum PaymentMethod {
+  PAYPAL
+  CARD
+  CRYPTO
+}
+
+enum CryptoCurrency {
+  BTC
+  ETH
+  SOL
+  USDT_TRC20
+  USDT_ERC20
+}
+
+enum OrderStatus {
+  PENDING          // created, awaiting payment
+  AWAITING_REVIEW  // crypto tx submitted, needs admin confirmation
+  PAID             // confirmed, download unlocked
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // null if OAuth-only
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+
+  accounts Account[]
+  sessions Session[]
+  orders   Order[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// The single product. Kept as a table (not hardcoded) so future products
+// can be added without a rebuild, per the CMS/"future ready" requirement.
+model Product {
+  id            String   @id @default(cuid())
+  slug          String   @unique @default("flagship")
+  name          String   @default("The Global Scam Economy")
+  tagline       String   @default("Premium Digital Intelligence")
+  description   String   @db.Text
+  priceCents    Int      // price in cents, e.g. 4900 = $49.00
+  currency      String   @default("USD")
+  pdfFileKey    String?  // storage key/path for the current PDF asset
+  pdfFileName   String?
+  previewImage  String?
+  benefits      Json?    // string[] stored as JSON
+  included      Json?    // string[] stored as JSON
+  active        Boolean  @default(true)
+  updatedAt     DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("products")
+}
+
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique @default(cuid())
+  userId          String?
+  productId       String
+  amountCents     Int
+  currency        String        @default("USD")
+  method          PaymentMethod
+  status          OrderStatus   @default(PENDING)
+
+  // PayPal-specific
+  paypalOrderId   String?
+  paypalCaptureId String?
+
+  // Crypto-specific
+  cryptoCurrency  CryptoCurrency?
+  cryptoTxHash    String?
+  cryptoWalletId  String?
+
+  customerEmail   String
+  downloadToken   String?  @unique
+  downloadCount   Int      @default(0)
+  adminNote       String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id])
+  product      Product       @relation(fields: [productId], references: [id])
+  cryptoWallet CryptoWallet? @relation(fields: [cryptoWalletId], references: [id])
+  downloads    Download[]
+
+  @@map("orders")
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  orderId   String
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("downloads")
+}
+
+// Admin-managed receiving wallet addresses shown at checkout.
+model CryptoWallet {
+  id       String         @id @default(cuid())
+  currency CryptoCurrency @unique
+  network  String         // e.g. "Bitcoin", "TRC20", "ERC20", "Solana"
+  address  String
+  active   Boolean        @default(true)
+
+  orders Order[]
+
+  @@map("crypto_wallets")
+}
+
+// Simple flat key/value CMS store so non-technical edits (homepage copy,
+// FAQ, testimonials, SEO/meta) don't require code changes.
+model SiteContent {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("site_content")
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("contact_messages")
+}

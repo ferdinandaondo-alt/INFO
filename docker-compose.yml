@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: info
+      POSTGRES_PASSWORD: info_password
+      POSTGRES_DB: info_marketplace
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://info:info_password@db:5432/info_marketplace
+    ports:
+      - '3000:3000'
+    volumes:
+      - product_storage:/app/storage
+
+volumes:
+  pgdata:
+  product_storage:
