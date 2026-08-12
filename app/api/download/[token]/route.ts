@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { readFile } from 'fs/promises';
-import path from 'path';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -35,19 +33,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     prisma.order.update({ where: { id: order.id }, data: { downloadCount: { increment: 1 } } }),
   ]);
 
-  // Files are stored under /storage/products (outside the public dir so they
-  // can't be accessed without a valid signed token).
-  const filePath = path.join(process.cwd(), 'storage', 'products', order.product.pdfFileKey);
-
-  try {
-    const file = await readFile(filePath);
-    return new NextResponse(file as any, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${order.product.pdfFileName || 'The-Global-Scam-Economy.pdf'}"`,
-      },
-    });
-  } catch {
-    return NextResponse.json({ error: 'File not found on server' }, { status: 500 });
+  // pdfFileKey now holds the full Vercel Blob URL. We fetch it server-side
+  // and stream it back through our own route rather than redirecting the
+  // browser there directly — this keeps the actual blob URL out of the
+  // buyer's address bar and network tab, preserving the same "never expose
+  // the raw storage location" behavior the local-disk version had.
+  const blobRes = await fetch(order.product.pdfFileKey);
+  if (!blobRes.ok || !blobRes.body) {
+    return NextResponse.json({ error: 'File not found in storage' }, { status: 500 });
   }
+
+  return new NextResponse(blobRes.body, {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${order.product.pdfFileName || 'The-Global-Scam-Economy.pdf'}"`,
+    },
+  });
 }
