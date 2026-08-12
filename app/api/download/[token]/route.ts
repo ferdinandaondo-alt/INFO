@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { get } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -33,19 +34,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ toke
     prisma.order.update({ where: { id: order.id }, data: { downloadCount: { increment: 1 } } }),
   ]);
 
-  // pdfFileKey now holds the full Vercel Blob URL. We fetch it server-side
-  // and stream it back through our own route rather than redirecting the
-  // browser there directly — this keeps the actual blob URL out of the
-  // buyer's address bar and network tab, preserving the same "never expose
-  // the raw storage location" behavior the local-disk version had.
-  const blobRes = await fetch(order.product.pdfFileKey);
-  if (!blobRes.ok || !blobRes.body) {
+  // pdfFileKey holds the blob's pathname. Private blobs can't be fetched by
+  // URL directly — get() authenticates the request using the store's
+  // credentials (via BLOB_READ_WRITE_TOKEN / OIDC) and returns a stream,
+  // which we pipe straight through to the buyer without ever exposing the
+  // underlying storage location.
+  const result = await get(order.product.pdfFileKey, { access: 'private' });
+
+  if (!result || result.statusCode !== 200 || !result.stream) {
     return NextResponse.json({ error: 'File not found in storage' }, { status: 500 });
   }
 
-  return new NextResponse(blobRes.body, {
+  return new NextResponse(result.stream as any, {
     headers: {
-      'Content-Type': 'application/pdf',
+      'Content-Type': result.blob?.contentType || 'application/pdf',
       'Content-Disposition': `attachment; filename="${order.product.pdfFileName || 'The-Global-Scam-Economy.pdf'}"`,
     },
   });
