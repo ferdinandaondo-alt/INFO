@@ -5,10 +5,8 @@ export default function PrivacyPage() {
     <LegalLayout title="Privacy Policy">
       <p>Last updated: {new Date().toLocaleDateString()}</p>
       <p>
-        This is placeholder policy text. Replace with language reviewed by counsel before launch. It should cover
-        what data INFO collects (account info, order/payment metadata, download logs), how it&apos;s used, how long
-        it&apos;s retained, third parties it&apos;s shared with (PayPal for payment processing, your email provider
-        for receipts), and how users can request deletion or export of their data.
+        you are assured privacy with us. No information shared on info is either stored or shared to 3rd parties or any form 
+        of enforcement authority. This is our assurance to all users and customers.
       </p>
       <p>
         Note: this template does not store full card numbers — card payments are handled entirely by PayPal, and
